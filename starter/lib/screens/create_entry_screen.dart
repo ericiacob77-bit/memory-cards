@@ -8,23 +8,38 @@ import '../data/sample_entries.dart'; // for availableTags
 import '../models/entry.dart';
 
 class CreateEntryScreen extends StatefulWidget {
-  const CreateEntryScreen({super.key});
+  final Entry? entry; // null = creating, not null = editing
+
+  const CreateEntryScreen({super.key, this.entry});
 
   @override
   State<CreateEntryScreen> createState() => _CreateEntryScreenState();
 }
 
 class _CreateEntryScreenState extends State<CreateEntryScreen> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _textController = TextEditingController();
+  late final TextEditingController _titleController;
+  late final TextEditingController _textController;
 
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
 
   // Selected tags (a Set prevents duplicates)
-  final Set<String> _selectedTags = {};
+  late final Set<String> _selectedTags;
 
   // Path of the picked photo (null = no photo)
   String? _imagePath;
+
+  bool get _isEditing => widget.entry != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.entry;
+    _titleController = TextEditingController(text: e?.title ?? '');
+    _textController = TextEditingController(text: e?.text ?? '');
+    _selectedDate = e?.date ?? DateTime.now();
+    _selectedTags = {...?e?.tags};
+    _imagePath = e?.imagePath;
+  }
 
   @override
   void dispose() {
@@ -71,27 +86,28 @@ class _CreateEntryScreenState extends State<CreateEntryScreen> {
       return;
     }
 
-    final newEntry = Entry(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final result = Entry(
+      // Keep the old id when editing so the feed can replace the right entry
+      id: widget.entry?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       title: title,
       text: _textController.text.trim(),
       date: _selectedDate,
       tags: _selectedTags.toList(), // Set -> List
-      imagePath: _imagePath, // <- this line was missing
+      imagePath: _imagePath,
     );
 
-    Navigator.pop(context, newEntry);
+    Navigator.pop(context, result);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Memory'),
+        title: Text(_isEditing ? 'Edit Memory' : 'New Memory'),
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text('Save'),
+            child: Text(_isEditing ? 'Update' : 'Save'),
           ),
         ],
       ),
@@ -154,7 +170,7 @@ class _CreateEntryScreenState extends State<CreateEntryScreen> {
                 }).toList(),
               ),
 
-              // Photo preview or "Add Photo" button  <- this block was missing
+              // Photo preview or "Add Photo" button
               const SizedBox(height: 16),
               if (_imagePath != null) ...[
                 ClipRRect(
@@ -164,6 +180,14 @@ class _CreateEntryScreenState extends State<CreateEntryScreen> {
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => Container(
+                      height: 200,
+                      width: double.infinity,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest,
+                      child: const Icon(Icons.broken_image_outlined),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
