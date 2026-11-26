@@ -5,6 +5,6 @@ void main() {
   testWidgets('App launches and shows the home screen', (WidgetTester tester) async {
     await tester.pumpWidget(const MemoryCardsApp());
     // The home screen should be visible (AppBar title)
-    expect(find.text('Memory Cards'), findsOneWidget);
+    expect(find.text('German Memory Cards of Erasmus'), findsOneWidget);
   });
 }
